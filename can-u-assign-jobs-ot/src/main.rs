@@ -22,7 +22,7 @@ type AppState = Arc<Mutex<()>>;
 #[tokio::main]
 async fn main() {
     // Initialize database
-    if let Err(e) = database::init_db().await {
+    if let Err(e) = database::init_db("data.db").await {
         eprintln!("Failed to initialize database: {}", e);
         std::process::exit(1);
     }
@@ -58,29 +58,28 @@ async fn register_user(
     let pool = database::get_pool();
     
     // Check if user already exists
-    let existing_user = sqlx::query(
+    match sqlx::query(
         "SELECT id FROM users WHERE username = ?"
     )
     .bind(&payload.username)
     .fetch_optional(pool)
     .await
-    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, json!({"error": e.to_string()})))?;
-
-    if existing_user.is_some() {
-        return Err((
+    {
+        Ok(Some(_)) => Err((
             StatusCode::BAD_REQUEST,
-            json!({"error": "Username already registered"}),
-        ));
+            Json(json!({"error": "Username already registered"})),
+        )),
+        Ok(None) => {
+            // Hash password and create user
+            let hashed_password = AuthService::hash_password(&payload.password);
+            
+            match database::create_user(&payload.username, &payload.email, &hashed_password).await {
+                Ok(_) => Ok(Json(json!({"message": "User created successfully"}))),
+                Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))),
+            }
+        }
+        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))),
     }
-
-    // Hash password and create user
-    let hashed_password = AuthService::hash_password(&payload.password);
-    
-    database::create_user(&payload.username, &payload.email, &hashed_password)
-        .await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, json!({"error": e.to_string()})))?;
-
-    Ok(json!({"message": "User created successfully"}))
 }
 
 async fn login_for_access_token(
@@ -90,38 +89,40 @@ async fn login_for_access_token(
     let pool = database::get_pool();
     
     // Get user from database
-    let user_row = sqlx::query(
+    match sqlx::query(
         "SELECT hashed_password FROM users WHERE username = ?"
     )
     .bind(&payload.username)
     .fetch_optional(pool)
     .await
-    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, json!({"error": e.to_string()})))?;
-
-    let user_row = match user_row {
-        Some(row) => row,
-        None => return Err((
+    {
+        Ok(None) => Err((
             StatusCode::UNAUTHORIZED,
-            json!({"error": "Invalid credentials"}),
+            Json(json!({"error": "Invalid credentials"})),
         )),
-    };
+        Ok(Some(row)) => {
+            // Import Row trait for get method
+            use sqlx::Row;
+            
+            // Verify password
+            let hashed_password: String = row.get("hashed_password");
+            
+            if !AuthService::verify_password(&payload.password, &hashed_password) {
+                return Err((
+                    StatusCode::UNAUTHORIZED,
+                    Json(json!({"error": "Invalid credentials"})),
+                ));
+            }
 
-    // Verify password
-    let hashed_password: String = user_row.get("hashed_password");
-    
-    if !AuthService::verify_password(&payload.password, &hashed_password) {
-        return Err((
-            StatusCode::UNAUTHORIZED,
-            json!({"error": "Invalid credentials"}),
-        ));
+            // Create JWT token
+            match AuthService::create_token(&payload.username) {
+                Ok(access_token) => Ok(Json(json!({
+                    "access_token": access_token,
+                    "token_type": "bearer"
+                }))),
+                Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))),
+            }
+        }
+        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))),
     }
-
-    // Create JWT token
-    let access_token = AuthService::create_token(&payload.username)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, json!({"error": e.to_string()})))?;
-
-    Ok(json!({
-        "access_token": access_token,
-        "token_type": "bearer"
-    }))
 }

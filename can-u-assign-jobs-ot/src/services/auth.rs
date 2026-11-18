@@ -1,6 +1,6 @@
-use bcrypt::hash;
+use bcrypt::{hash, verify};
 use serde::{Deserialize, Serialize};
-use std::env;
+use std::env; // Keep this for secret key
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -19,8 +19,11 @@ impl AuthService {
     }
 
     pub fn hash_password(password: &str) -> String {
-        let salt = bcrypt::generate_salt(12).expect("Failed to generate salt");
-        hash(password, salt).expect("Failed to hash password")
+        let salt_bytes = [0u8; 16];
+        bcrypt(12, salt_bytes, password.as_bytes())
+            .iter()
+            .map(|b| format!("{:02x}", b))
+            .collect::<String>()
     }
 
     pub fn verify_password(plain_password: &str, hashed_password: &str) -> bool {
@@ -85,9 +88,6 @@ impl AuthService {
 
 // Simple base64 encoding/decoding using ring
 fn base64_encode(data: String) -> String {
-    use ring::digest::{Digest, digest};
-    use ring::hmac;
-    
     // Use simple URL-safe base64 encoding without external crate
     const BASE64_CHARS: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
     
@@ -155,10 +155,10 @@ fn base64_decode(data: &str) -> Result<String, String> {
 }
 
 fn sign_hmac_sha256(data: &str, key: &str) -> String {
-    use ring::hmac::{sign, Key, Algorithm};
-    use ring::rand::SystemRandom;
+    use ring::hmac::{sign, Key};
     
-    let key = Key::new(Algorithm::SHA256, key.as_bytes());
+    let key = Key::new(ring::hmac::HMAC_SHA256, key.as_bytes());
+    
     let signature = sign(&key, data.as_bytes());
     
     // Convert to base64-like string

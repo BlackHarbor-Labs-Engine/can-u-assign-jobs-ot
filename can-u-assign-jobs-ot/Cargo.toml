@@ -1,0 +1,28 @@
+[package]
+name = "can-u-assign-jobs-ot"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+
+[[bin]]
+name = "can-u-assign-jobs-ot"
+path = "src/main.rs"
+
+[dependencies]
+axum = { version = "0.7", features = ["macros"] }
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+bcrypt = "0.15"
+jsonwebtoken = "9"
+sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "sqlite", "macros"] }
+thiserror = "1"
+tokio-util = "0.7"
+tower = "0.4"
+chrono = "0.4"
+async-trait = "0.1"
+ring = "0.16"
+validator = { version = "0.16", features = ["derive"] }
+
+[dev-dependencies]
+tokio-test = "0.4"

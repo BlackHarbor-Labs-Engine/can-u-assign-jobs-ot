@@ -87,7 +87,7 @@ impl JobRepository for JobRepositoryImpl {
     }
 
     async fn assign_job_to_user(&self, job_id: i64, user_id: i64) -> Result<()> {
-        let pool = get_pool();
+        let pool = &self.pool;
 
         query(
             r#"

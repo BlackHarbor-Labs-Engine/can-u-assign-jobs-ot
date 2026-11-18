@@ -1,27 +1,27 @@
 use sqlx::{SqlitePool, Pool};
-use std::sync::OnceLock;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum DatabaseError {
     #[error("Database not initialized")]
     NotInitialized,
-    #[error(transparent)]
+    #[error("Sqlx error: {0}")]
     Sqlx(#[from] sqlx::Error),
 }
 
 pub type Result<T> = std::result::Result<T, DatabaseError>;
 
-static DB_POOL: OnceLock<Pool<sqlx::Sqlite>> = OnceLock::new();
+// --- Database Pool Management ---
+// Removed global OnceLock. Now we use a factory pattern for test isolation.
 
-pub async fn init_db(database_url: &str) -> Result<()> {
-    let pool = SqlitePool::connect(database_url)
-        .await
-        .map_err(DatabaseError::from)?;
+/// Initializes and returns a new SqlitePool connected to an in-memory database.
+/// This function should be called at the start of each test or service lifecycle.
+pub async fn init_db(database_url: &str) -> Result<SqlitePool> {
+    let pool = SqlitePool::connect(database_url).await.map_err(DatabaseError::from)?; 
 
     // Create users table if not exists
     sqlx::query(
-        r#"
+        r#"#
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT UNIQUE NOT NULL,
@@ -35,7 +35,7 @@ pub async fn init_db(database_url: &str) -> Result<()> {
 
     // Create jobs table if not exists
     sqlx::query(
-        r#"
+        r#"#
         CREATE TABLE IF NOT EXISTS jobs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             title TEXT NOT NULL,
@@ -49,20 +49,16 @@ pub async fn init_db(database_url: &str) -> Result<()> {
     .execute(&pool)
     .await?;
 
-    DB_POOL.set(pool).ok().ok_or(DatabaseError::NotInitialized)?;
-
-    Ok(())
+    Ok(pool)
 }
 
-pub fn get_pool() -> &'static Pool<sqlx::Sqlite> {
-    DB_POOL.get().expect("Database not initialized")
-}
+// Removed get_pool() as it relied on the global static.
 
-pub async fn create_user(username: &str, email: &str, hashed_password: &str) -> Result<i64> {
-    let pool = get_pool();
+// --- CRUD Operations ---
 
+pub async fn create_user(pool: &SqlitePool, username: &str, email: &str, hashed_password: &str) -> Result<i64> {
     let result = sqlx::query(
-        r#"
+        r#"#
         INSERT INTO users (username, email, hashed_password)
         VALUES (?, ?, ?)
         "#
@@ -76,11 +72,9 @@ pub async fn create_user(username: &str, email: &str, hashed_password: &str) -> 
     Ok(result.last_insert_rowid())
 }
 
-pub async fn get_user_by_username(username: &str) -> Result<Option<crate::models::User>> {
-    let pool = get_pool();
-
+pub async fn get_user_by_username(pool: &SqlitePool, username: &str) -> Result<Option<crate::models::User>> {
     let user = sqlx::query_as::<_, crate::models::User>(
-        r#"
+        r#"#
         SELECT id, username, email, hashed_password
         FROM users
         WHERE username = ?
@@ -93,11 +87,9 @@ pub async fn get_user_by_username(username: &str) -> Result<Option<crate::models
     Ok(user)
 }
 
-pub async fn get_user_by_id(user_id: i64) -> Result<Option<crate::models::User>> {
-    let pool = get_pool();
-
+pub async fn get_user_by_id(pool: &SqlitePool, user_id: i64) -> Result<Option<crate::models::User>> {
     let user = sqlx::query_as::<_, crate::models::User>(
-        r#"
+        r#"#
         SELECT id, username, email
         FROM users
         WHERE id = ?

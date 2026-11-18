@@ -4,7 +4,7 @@ use std::env;
 use thiserror::Error;
 use jsonwebtoken::{encode, decode, Header, EncodingKey, DecodingKey, Algorithm, TokenData};
 use chrono::{Utc, Duration};
-use crate::database;
+use crate::database; use sqlx::SqlitePool;
 
 #[derive(Error, Debug)]
 pub enum AuthError {
@@ -40,9 +40,9 @@ impl AuthService {
         bcrypt::verify(plain_password, hashed_password).unwrap_or(false)
     }
 
-    pub async fn register_user(username: &str, email: &str, password: &str) -> Result<i64, AuthError> { 
+    pub async fn register_user(pool: &SqlitePool, username: &str, email: &str, password: &str) -> Result<i64, AuthError> { 
         let hashed_password = AuthService::hash_password(password);
-        database::create_user(username, email, &hashed_password)
+        database::create_user(pool, username, email, &hashed_password)
             .await
             .map_err(AuthError::DbError)
     }

@@ -1,6 +1,6 @@
 use sqlx::{query, Row};
 use thiserror::Error;
-use crate::database::{get_pool, DatabaseError};
+use crate::database::DatabaseError;
 
 #[derive(Error, Debug)]
 pub enum JobRepositoryError {
@@ -28,7 +28,7 @@ pub trait JobRepository {
     async fn assign_job_to_user(&self, job_id: i64, user_id: i64) -> Result<()>;
 }
 
-pub struct JobRepositoryImpl;
+pub struct JobRepositoryImpl { pool: sqlx::SqlitePool }
 
 #[derive(Debug, Clone)]
 pub struct Job {
@@ -43,7 +43,7 @@ pub struct Job {
 #[async_trait::async_trait]
 impl JobRepository for JobRepositoryImpl {
     async fn create_job(&self, title: &str, description: &str, user_id: i64) -> Result<i64> {
-        let pool = get_pool();
+        let pool = &self.pool;
 
         let result = query(
             r#"
@@ -61,7 +61,7 @@ impl JobRepository for JobRepositoryImpl {
     }
 
     async fn get_jobs_by_user(&self, user_id: i64) -> Result<Vec<Job>> {
-        let pool = get_pool();
+        let pool = &self.pool;
 
         let rows = query(
             r#"

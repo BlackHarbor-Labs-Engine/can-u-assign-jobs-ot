@@ -1,6 +1,4 @@
-
 use axum::{extract::{State, Json}, http::StatusCode, routing::post, Router};
-
 
 // Declare modules here to make them visible to the binary crate
 mod models;
@@ -19,7 +17,7 @@ pub struct AppState(sqlx::SqlitePool);
 
 // The login handler now uses the DB pool and AuthService
 async fn login_for_access_token(
-    State(_pool): State<sqlx::SqlitePool>,
+    State(pool): State<sqlx::SqlitePool>,
     payload: Json<UserLogin>,
 ) -> Result<Json<LoginResponse>, (StatusCode, Json<String>)> {
     // 1. Validation check
@@ -67,7 +65,7 @@ async fn main() {
 
     // --- Server Setup Phase ---
     // Setup router, passing the SqlitePool directly to with_state
-    let app: Router<AppState> = Router::new().with_state(pool.clone()).with_state(AppState(pool.clone()))
+    let app: Router<AppState> = Router::new().with_state(AppState(pool.clone()))
         .route("/login", post(login_for_access_token))
         .with_state(pool);
 

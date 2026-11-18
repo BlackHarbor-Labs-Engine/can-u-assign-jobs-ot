@@ -100,7 +100,7 @@ async fn login_for_access_token(
             StatusCode::UNAUTHORIZED,
             Json(json!({"error": "Invalid credentials"})),
         )),
-        Ok(Some(row)) => {
+        Ok(Some(user)) => {
             // Import Row trait for get method
             use sqlx::Row;
             

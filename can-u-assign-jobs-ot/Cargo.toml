@@ -1,7 +1,11 @@
 [package]
 name = "can-u-assign-jobs-ot"
 version.workspace = true
-edition.workspace = true
+
+
+[workspace]
+edition = "2021"
+version = "0.1.0"
 authors = ["Pike <pike@pike@harbourlabs.dev>", "Has <has@harbourlabs.dev>"]
 
 [[bin]]
@@ -17,9 +21,9 @@ bcrypt = "0.15"
 sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "sqlite", "macros"] }
 thiserror = "1"
 chrono = "0.4"
-ring = "0.16"
+jsonwebtoken = "0.47"
+ring = "0.17"
 async-trait = "0.1"
 
 [dev-dependencies]
 tokio-test = "0.4"
-]

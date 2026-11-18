@@ -33,27 +33,26 @@ impl AuthService {
     pub fn create_token(username: &str) -> Result<String, AuthError> {
         let secret_key = Self::get_secret_key();
         
-        // Create a simple JWT-like token without external claims struct
-        let expires_at = chrono::Utc::now()
-            .checked_add_signed(chrono::Duration::minutes(30))
-            .map(|t| t.timestamp() as usize)
-            .ok_or_else(|| AuthError::TokenError("Failed to calculate expiration".to_string()))?;
-
-        // Build JSON manually for claims
-        let claims_json = serde_json::json!({
-            "sub": username,
-            "exp": expires_at,
-            "iat": chrono::Utc::now().timestamp() as usize
-        });
-
-        // Encode header + claims
-        let header_b64 = base64_encode(serde_json::json!({"alg": "HS256", "typ": "JWT"}).to_string());
-        let claims_b64 = base64_encode(claims_json.to_string());
+        use jsonwebtoken::{encode, Header, EncodingKey, Claims}; 
         
-        let signing_input = format!("{}.{}", header_b64, claims_b64);
-        let signature = sign_hmac_sha256(&signing_input, &secret_key);
-        
-        Ok(format!("{}.{}", signing_input, signature))
+        #[derive(Debug, Serialize, Deserialize)]
+        struct ClaimsData {
+            sub: String, // Subject (username)
+            exp: usize,  // Expiration time
+            iat: usize,  // Issued at time
+        }
+
+        let expiration = chrono::Utc::now() + chrono::Duration::minutes(30);
+        let claims = ClaimsData {
+            sub: username.to_string(),
+            exp: expiration.timestamp() as usize,
+            iat: chrono::Utc::now().timestamp() as usize,
+        };
+
+        let token = encode(&Header::new(jsonwebtoken::Algorithm::HS256), &claims, &EncodingKey::from_secret(secret_key.as_bytes()))
+            .map_err(|e| AuthError::TokenError(e.to_string()))?;
+
+        Ok(token)
     }
 
     pub fn verify_token(token: &str) -> Result<String, AuthError> {
@@ -87,9 +86,9 @@ impl AuthService {
 }
 
 // Simple base64 encoding/decoding using ring
-fn base64_encode(data: String) -> String {
+// Removed custom base64_encode function
     // Use simple URL-safe base64 encoding without external crate
-    const BASE64_CHARS: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    // Removed custom base64 constants as we use jsonwebtoken crate
     
     let mut result = String::new();
     let bytes = data.into_bytes();
@@ -119,7 +118,7 @@ fn base64_encode(data: String) -> String {
     result
 }
 
-fn base64_decode(data: &str) -> Result<String, String> {
+// Removed custom base64_decode function
     const BASE64_CHARS: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
     
     let mut result = Vec::new();
@@ -154,7 +153,7 @@ fn base64_decode(data: &str) -> Result<String, String> {
     Ok(String::from_utf8(result).map_err(|_| "Invalid UTF-8".to_string())?)
 }
 
-fn sign_hmac_sha256(data: &str, key: &str) -> String {
+// Removed custom sign_hmac_sha256 function
     use ring::hmac::{sign, Key};
     
     let key = Key::new(ring::hmac::HMAC_SHA256, key.as_bytes());

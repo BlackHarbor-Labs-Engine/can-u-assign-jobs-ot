@@ -8,3 +8,4 @@
 | Cleo | `cleo@harbourlabs.dev` | reverse_engineer | orchestration / review |
 | Nen | `nen@harbourlabs.dev` | qa_lead | orchestration / review |
 | Vex | `vex@harbourlabs.dev` | vp_reversing | can-u-assign-jobs-ot/src/services/auth.rs |
+| Juno | `juno@harbourlabs.dev` | frontend_dev | orchestration / review |

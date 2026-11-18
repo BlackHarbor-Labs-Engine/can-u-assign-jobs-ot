@@ -40,7 +40,8 @@ async fn test_job_repository_create() {
     
     let pool = init_db(":memory:").await.expect("Failed to initialize database");
 
-    let repo = can_u_assign_jobs_ot::repositories::job_repository::JobRepositoryImpl;
+    use can_u_assign_jobs_ot::repositories::job_repository::JobRepositoryImpl;
+let repo = JobRepositoryImpl;
 
     // First create a user
     let user_id = create_user(&pool, "jobuser", "job@example.com", "hashed_password_456").await

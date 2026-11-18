@@ -26,7 +26,7 @@ async fn login_for_access_token(
     }
 
     // 2. Fetch user from DB
-    let user_opt = database::get_user_by_username(&payload.username).await.map_err(|e| {
+    let user_opt = database::get_user_by_username(&pool, &payload.username).await.map_err(|e| {
         eprintln!("DB Error during login: {:?}", e);
         (StatusCode::INTERNAL_SERVER_ERROR, Json("Database error.".to_string()))
     })?;

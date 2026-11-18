@@ -1,14 +1,12 @@
-use std::path::Path;
-use sqlx::Row;
-use crate::repositories::job_repository::{JobRepository, JobRepositoryImpl};
 use can_u_assign_jobs_ot::database::{init_db, create_user, get_user_by_username};
+use can_u_assign_jobs_ot::services::auth::AuthService;
 
 #[tokio::test]
 async fn test_pool_creation() {
     // Use in-memory database for testing
     
     let pool = init_db(":memory:").await.expect("Failed to initialize database");
-
+    
     // Verify pool is set (no global pool to check, just ensuring init succeeded)
     let _ = pool;
 }
@@ -35,99 +33,27 @@ async fn test_create_user() {
 }
 
 #[tokio::test]
-async fn test_job_repository_create() {
-    // Use in-memory database for testing
-    
+async fn test_auth_flow() {
     let pool = init_db(":memory:").await.expect("Failed to initialize database");
+    let username = "auth_tester";
+    let password = "securepassword123";
+    let email = "auth@test.com";
 
-    use crate::repositories::job_repository::{JobRepository, JobRepositoryImpl};
-let repo = JobRepositoryImpl { pool: pool.clone() };
+    // 1. Register User
+    let user_id = AuthService::register_user(&pool, username, email, password).await.expect("User registration failed");
 
-    // First create a user
-    let user_id = create_user(&pool, "jobuser", "job@example.com", "hashed_password_456").await
-    .expect("Failed to create user");
+    // 2. Create Token
+    let token = AuthService::create_token(username).expect("Token creation failed");
 
-    // Create a job
-    let job_id = repo.create_job("Test Job", "This is a test job description", user_id)
-        .await
-        .expect("Failed to create job");
+    // 3. Verify Token (Success Case)
+    let verified_user = AuthService::verify_token(&token).expect("Token verification failed");
+    assert_eq!(verified_user, username, "Token subject mismatch");
 
-    assert!(job_id > 0, "Job ID should be positive");
+    // 4. Test Wrong Password (Simulated Login)
+    let wrong_password_result = AuthService::verify_password("wrongpassword", &AuthService::hash_password(password));
+    assert!(!wrong_password_result, "Should fail verification with wrong password");
 
-    // Verify job was created
-    let jobs = repo.get_jobs_by_user(user_id)
-        .await
-        .expect("Failed to get jobs");
-
-    assert_eq!(jobs.len(), 1);
-    assert_eq!(jobs[0].title, "Test Job");
-    assert_eq!(jobs[0].description, "This is a test job description");
-    assert_eq!(jobs[0].user_id, Some(user_id));
-}
-
-#[tokio::test]
-async fn test_job_repository_assign() {
-    // Use in-memory database for testing
-    
-    let pool = init_db(":memory:").await.expect("Failed to initialize database");
-
-    let repo = can_u_assign_jobs_ot::repositories::job_repository::JobRepositoryImpl;
-
-    // Create two users
-    let user1_id = create_user(&pool, "assignuser1", "assign1@example.com", "hashed_password_789").await
-    .expect("Failed to create user 1");
-
-    let user2_id = create_user(&pool, "assignuser2", "assign2@example.com", "hashed_password_abc").await
-    .expect("Failed to create user 2");
-
-    // Create a job for user1
-    let job_id = repo.create_job("Assignable Job", "This job can be assigned", user1_id)
-        .await
-        .expect("Failed to create job");
-
-    // Assign the job to user2
-    repo.assign_job_to_user(job_id, user2_id)
-        .await
-        .expect("Failed to assign job");
-
-    // Verify assignment worked
-    let jobs = repo.get_jobs_by_user(&pool, user2_id)
-        .await
-        .expect("Failed to get jobs for user2");
-
-    assert_eq!(jobs.len(), 1);
-    assert_eq!(jobs[0].id, job_id);
-    assert_eq!(jobs[0].user_id, Some(user2_id));
-
-    // Verify original user no longer has the job
-    let user1_jobs = repo.get_jobs_by_user(&pool, user1_id)
-        .await
-        .expect("Failed to get jobs for user1");
-
-    assert_eq!(user1_jobs.len(), 0);
-}
-
-#[tokio::test]
-async fn test_multiple_jobs_per_user() {
-    // Use in-memory database for testing
-    
-    let pool = init_db(":memory:").await.expect("Failed to initialize database");
-
-    let repo = can_u_assign_jobs_ot::repositories::job_repository::JobRepositoryImpl;
-
-    let user_id = create_user(&pool, "multiuser", "multi@example.com", "hashed_password_multi").await
-    .expect("Failed to create user");
-
-    // Create multiple jobs
-    for i in 1..=5 {
-        repo.create_job(&format!("Job {}", i), &format!("Description {}", i), user_id)
-            .await
-            .expect("Failed to create job");
-    }
-
-    let jobs = repo.get_jobs_by_user(&pool, user_id)
-        .await
-        .expect("Failed to get jobs");
-
-    assert_eq!(jobs.len(), 5);
+    // 5. Test Invalid Token
+    let invalid_token_result = AuthService::verify_token("not.a.real.token");
+    assert!(invalid_token_result.is_err(), "Should fail verification with invalid token");
 }

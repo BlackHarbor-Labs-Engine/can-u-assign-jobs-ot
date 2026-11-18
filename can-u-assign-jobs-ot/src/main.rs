@@ -100,7 +100,26 @@ async fn login_for_access_token(
             StatusCode::UNAUTHORIZED,
             Json(json!({"error": "Invalid credentials"})),
         )),
-        Ok(Some(user)) => {
+        Ok(Some(row)) => {
+            // Verify password
+            let hashed_password: String = row.get("hashed_password");
+            
+            if !AuthService::verify_password(&payload.password, &hashed_password) {
+                return Err((
+                    StatusCode::UNAUTHORIZED,
+                    Json(json!({"error": "Invalid credentials"})),
+                ));
+            }
+
+            // Create JWT token
+            match AuthService::create_token(&payload.username) {
+                Ok(access_token) => Ok(Json(json!({
+                    "access_token": access_token,
+                    "token_type": "bearer"
+                }))),
+                Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))),
+            }
+        }
             // Import Row trait for get method
             use sqlx::Row;
             

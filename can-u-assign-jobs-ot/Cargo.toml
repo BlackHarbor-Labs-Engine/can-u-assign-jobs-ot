@@ -2,6 +2,7 @@
 name = "can-u-assign-jobs-ot"
 version.workspace = true
 edition.workspace = true
+authors = ["Pike <pike@harbourlabs.dev>", "Has <has@harbourlabs.dev>"]
 
 [[bin]]
 name = "can-u-assign-jobs-ot"
@@ -21,3 +22,4 @@ async-trait = "0.1"
 
 [dev-dependencies]
 tokio-test = "0.4"
+]

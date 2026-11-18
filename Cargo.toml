@@ -1,10 +1,8 @@
-[workspace]
-members = [
-    "can-u-assign-jobs-ot",
-]
-resolver = "2"
+
 
 [workspace.package]
 version = "0.1.0"
 edition = "2021"
-authors = ["Has <has@harbourlabs.dev>"]
+
+
+authors = "Has <has@harbourlabs.dev>"

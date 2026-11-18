@@ -41,9 +41,9 @@ async fn main() {
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000")
         .await
         .unwrap();
-    
+
     println!("Server running on http://0.0.0.0:3000");
-    
+
     axum::serve(listener, app).await.unwrap();
 }
 
@@ -52,7 +52,7 @@ async fn root() -> &'static str {
 }
 
 async fn register_user(
-    State(_state): State<Arc<Mutex<()>>>,
+    State(_state): State<Arc<Mutex<()>>],
     Json(payload): Json<UserRegister>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let pool = database::get_pool();
@@ -65,7 +65,7 @@ async fn register_user(
     .fetch_optional(pool)
     .await
     {
-        Ok(Some(_)) => Err((
+        Ok(Some(_)) => Err(( 
             StatusCode::BAD_REQUEST,
             Json(json!({"error": "Username already registered"})),
         )),
@@ -83,7 +83,7 @@ async fn register_user(
 }
 
 async fn login_for_access_token(
-    State(_state): State<Arc<Mutex<()>>>,
+    State(_state): State<Arc<Mutex<()>>],
     Json(payload): Json<UserLogin>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let pool = database::get_pool();
@@ -96,7 +96,7 @@ async fn login_for_access_token(
     .fetch_optional(pool)
     .await
     {
-        Ok(None) => Err((
+        Ok(None) => Err(( 
             StatusCode::UNAUTHORIZED,
             Json(json!({"error": "Invalid credentials"})),
         )),
@@ -110,7 +110,7 @@ async fn login_for_access_token(
                     Json(json!({"error": "Invalid credentials"})),
                 ));
             }
-
+            
             // Create JWT token
             match AuthService::create_token(&payload.username) {
                 Ok(access_token) => Ok(Json(json!({
@@ -119,29 +119,7 @@ async fn login_for_access_token(
                 }))),
                 Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))),
             }
-        }
-            // Import Row trait for get method
-            use sqlx::Row;
-            
-            // Verify password
-            let hashed_password: String = row.get("hashed_password");
-            
-            if !AuthService::verify_password(&payload.password, &hashed_password) {
-                return Err((
-                    StatusCode::UNAUTHORIZED,
-                    Json(json!({"error": "Invalid credentials"})),
-                ));
-            }
-
-            // Create JWT token
-            match AuthService::create_token(&payload.username) {
-                Ok(access_token) => Ok(Json(json!({
-                    "access_token": access_token,
-                    "token_type": "bearer"
-                }))),
-                Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))),
-            }
-        }
+        },
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))),
     }
 }

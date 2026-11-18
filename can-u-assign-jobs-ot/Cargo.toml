@@ -2,7 +2,7 @@
 name = "can-u-assign-jobs-ot"
 version.workspace = true
 edition.workspace = true
-authors = ["Pike <pike@harbourlabs.dev>", "Has <has@harbourlabs.dev>"]
+authors = ["Pike <pike@pike@harbourlabs.dev>", "Has <has@harbourlabs.dev>"]
 
 [[bin]]
 name = "can-u-assign-jobs-ot"

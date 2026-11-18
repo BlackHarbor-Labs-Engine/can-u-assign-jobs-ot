@@ -76,7 +76,7 @@ pub async fn create_user(username: &str, email: &str, hashed_password: &str) -> 
     Ok(result.last_insert_rowid())
 }
 
-pub async fn get_user_by_username(username: &str) -> Result<Option<sqlx::Row<'static, sqlx::Sqlite>>> {
+pub async fn get_user_by_username(username: &str) -> Result<Option<sqlx::sqlite::SqliteRow>> {
     let pool = get_pool();
 
     let user = sqlx::query(
@@ -93,7 +93,7 @@ pub async fn get_user_by_username(username: &str) -> Result<Option<sqlx::Row<'st
     Ok(user)
 }
 
-pub async fn get_user_by_id(user_id: i64) -> Result<Option<sqlx::Row<'static, sqlx::Sqlite>>> {
+pub async fn get_user_by_id(user_id: i64) -> Result<Option<sqlx::sqlite::SqliteRow>> {
     let pool = get_pool();
 
     let user = sqlx::query(

@@ -20,7 +20,7 @@ impl AuthService {
 
     pub fn hash_password(password: &str) -> String {
         let salt_bytes = [0u8; 16];
-        bcrypt(12, salt_bytes, password.as_bytes())
+        hash(password.as_bytes(), 12)
             .iter()
             .map(|b| format!("{:02x}", b))
             .collect::<String>()

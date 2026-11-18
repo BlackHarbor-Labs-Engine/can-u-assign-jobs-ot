@@ -14,7 +14,7 @@ use axum::{
 use serde_json::{json, Value};
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use models::{UserRegister, UserLogin};
+use models::{User, UserRegister, UserLogin};
 use services::auth::AuthService;
 
 type AppState = Arc<Mutex<()>>;
@@ -52,7 +52,7 @@ async fn root() -> &'static str {
 }
 
 async fn register_user(
-    State(_state): State<Arc<Mutex<()>>],
+    State(_state): State<Arc<Mutex<()>>>,
     Json(payload): Json<UserRegister>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let pool = database::get_pool();

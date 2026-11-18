@@ -52,8 +52,8 @@ async fn test_create_user() {
         .expect("Failed to get user")
         .expect("User should exist");
 
-    assert_eq!(user.get::<String, _>(1), "testuser");
-    assert_eq!(user.get::<String, _>(2), "test@example.com");
+    assert_eq!(user.username, "testuser");
+    assert_eq!(user.email, "test@example.com");
 
     std::fs::remove_file(temp_db).unwrap_or_default();
 }

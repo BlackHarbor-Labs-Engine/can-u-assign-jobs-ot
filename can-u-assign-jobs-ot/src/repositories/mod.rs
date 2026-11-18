@@ -1,3 +1,5 @@
 pub mod job_repository;
 
-pub use job_repository::{JobRepository, JobRepositoryImpl, Job, JobRepositoryError};
+pub use job_repository::{JobRepository, JobRepositoryImpl};
+
+

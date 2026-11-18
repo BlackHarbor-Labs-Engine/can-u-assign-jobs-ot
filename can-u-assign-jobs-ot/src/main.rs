@@ -55,11 +55,11 @@ async fn login_for_access_token(
 async fn main() {
     // --- Initialization Phase ---
     // In a real scenario, this URL would come from env vars.
-    let database_url = "sqlite:can_u_assign_jobs_ot.db";
+    let database_url = "sqlite::memory:";
     
     // Initialize DB Pool
     let pool = match database::init_db(database_url).await {
-        Ok(_) => { println!("Database initialized successfully."); database::get_pool().clone() },
+        Ok(pool) => { println!("Database initialized successfully."); pool },
         Err(e) => { eprintln!("FATAL: Database initialization failed: {:?}", e); std::process::exit(1); }
     };
 

@@ -1,6 +1,6 @@
 use std::path::Path;
 use sqlx::Row;
-use can_u_assign_jobs_ot::repositories::job_repository::JobRepository;
+use crate::repositories::job_repository::{JobRepository, JobRepositoryImpl};
 use can_u_assign_jobs_ot::database::{init_db, create_user, get_user_by_username};
 
 #[tokio::test]
@@ -40,8 +40,8 @@ async fn test_job_repository_create() {
     
     let pool = init_db(":memory:").await.expect("Failed to initialize database");
 
-    use can_u_assign_jobs_ot::repositories::job_repository::JobRepositoryImpl;
-let repo = JobRepositoryImpl;
+    use crate::repositories::job_repository::{JobRepository, JobRepositoryImpl};
+let repo = JobRepositoryImpl { pool: pool.clone() };
 
     // First create a user
     let user_id = create_user(&pool, "jobuser", "job@example.com", "hashed_password_456").await
@@ -55,7 +55,7 @@ let repo = JobRepositoryImpl;
     assert!(job_id > 0, "Job ID should be positive");
 
     // Verify job was created
-    let jobs = repo.get_jobs_by_user(&pool, user_id)
+    let jobs = repo.get_jobs_by_user(user_id)
         .await
         .expect("Failed to get jobs");
 

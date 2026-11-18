@@ -28,7 +28,7 @@ pub trait JobRepository {
     async fn assign_job_to_user(&self, job_id: i64, user_id: i64) -> Result<()>;
 }
 
-pub struct JobRepositoryImpl { pool: sqlx::SqlitePool }
+pub struct JobRepositoryImpl { pool: sqlx::SqlitePool } // Concrete implementation for production use
 
 #[derive(Debug, Clone)]
 pub struct Job {

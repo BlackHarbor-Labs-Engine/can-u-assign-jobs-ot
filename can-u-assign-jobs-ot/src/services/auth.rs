@@ -4,6 +4,7 @@ use std::env;
 use thiserror::Error;
 use jsonwebtoken::{encode, decode, Header, EncodingKey, DecodingKey, Algorithm, TokenData};
 use chrono::{Utc, Duration};
+use crate::database;
 
 #[derive(Error, Debug)]
 pub enum AuthError {
@@ -11,6 +12,8 @@ pub enum AuthError {
     InvalidCredentials,
     #[error("Token error: {0}")]
     TokenError(String),
+    #[error("Database error: {0}")]
+    DbError(#[from] crate::database::DatabaseError),
 }
 
 // ClaimsData must be public and outside the impl block to be accessible by both functions
@@ -35,6 +38,13 @@ impl AuthService {
 
     pub fn verify_password(plain_password: &str, hashed_password: &str) -> bool {
         bcrypt::verify(plain_password, hashed_password).unwrap_or(false)
+    }
+
+    pub async fn register_user(username: &str, email: &str, password: &str) -> Result<i64, AuthError> { 
+        let hashed_password = AuthService::hash_password(password);
+        database::create_user(username, email, &hashed_password)
+            .await
+            .map_err(AuthError::DbError)
     }
 
     pub fn create_token(username: &str) -> Result<String, AuthError> {
